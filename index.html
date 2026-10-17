@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automated Toll Collection with ML-based Vehicle Number Recognition</title>
+<meta name="description" content="Project demo: an automated toll gate that reads license plates with ML-based OCR on a Raspberry Pi. North South University, Dhaka.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Toll VNR</a>
+  <nav aria-label="Sections">
+    <a href="#simulator">Try it</a>
+    <a href="#video">Video</a>
+    <a href="#problem">Problem</a>
+    <a href="#system">System</a>
+    <a href="#results">Results</a>
+    <a href="#future">Future</a>
+    <a href="#team">Team</a>
+  </nav>
+</header>
+
+<main id="top">
+
+<!-- HERO + SIMULATOR -->
+<section class="hero" id="simulator">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="kicker">North South University · ECE · Dhaka</p>
+      <h1>Toll gates that read the plate, not the cash.</h1>
+      <p class="lede">A camera, a sonar sensor and a Raspberry Pi identify the vehicle, check its e-wallet and lift the barrier. No booth attendant, no RFID tag to lose.</p>
+      <p class="hero-actions"><a class="btn primary" href="#video">Watch the demo video</a><a class="btn" href="#system">How it works</a></p>
+    </div>
+
+    <div class="sim" aria-labelledby="sim-title">
+      <div class="sim-head">
+        <h2 id="sim-title">Toll gate simulator</h2>
+        <span class="pill">Browser simulation of the report's flow</span>
+      </div>
+
+      <div class="scene" id="scene">
+        <div class="road"></div>
+        <div class="booth">
+          <div class="lcd" id="lcd">WAITING FOR VEHICLE</div>
+          <div class="leds"><i id="ledG"></i><i id="ledR"></i></div>
+          <div class="sonar" aria-hidden="true"><span></span><span></span></div>
+        </div>
+        <div class="arm" id="arm"><i></i><i></i><i></i><i></i></div>
+        <div class="post"></div>
+        <div class="car" id="car" aria-hidden="true">
+          <div class="car-body"><div class="car-win"></div></div>
+          <div class="car-plate" id="carPlate">—</div>
+          <b class="wheel w1"></b><b class="wheel w2"></b>
+        </div>
+        <div class="readout"><span>Sonar</span><strong id="dist">— cm</strong></div>
+      </div>
+
+      <div class="controls">
+        <label class="field">
+          <span>Number plate</span>
+          <input id="plateInput" value="DHAKA METRO GA 12-3456" maxlength="28" spellcheck="false" autocomplete="off">
+        </label>
+        <button class="btn primary" id="runBtn" type="button">Send vehicle to gate</button>
+      </div>
+      <div class="presets" role="group" aria-label="Sample vehicles">
+        <button type="button" data-plate="DHAKA METRO GA 12-3456">Registered, funded</button>
+        <button type="button" data-plate="DHAKA METRO HA 45-6789">Registered, low balance</button>
+        <button type="button" data-plate="CHATTA METRO KA 11-2233">Reported stolen</button>
+        <button type="button" data-plate="SYLHET METRO CHA 90-1234">Not registered</button>
+      </div>
+
+      <div class="pipeline">
+        <div class="stage-plate" aria-live="polite">
+          <div class="plate-box" id="plateBox">
+            <div class="plate" id="plate"><span class="pl1" id="pl1"></span><span class="pl2" id="pl2"></span></div>
+          </div>
+          <div class="ocr-out"><span>OCR result</span><output id="ocrOut">—</output></div>
+        </div>
+        <ol class="steps" id="steps">
+          <li data-s="sense"><b>Sonar trigger</b><small>Vehicle within 40 cm and slower than 0.5 cm/s</small></li>
+          <li data-s="capture"><b>Capture</b><small>PiCamera photographs the plate</small></li>
+          <li data-s="pre"><b>Pre-process</b><small>Grayscale, denoise, binarize</small></li>
+          <li data-s="seg"><b>Segment</b><small>Isolate each character</small></li>
+          <li data-s="ocr"><b>Recognize</b><small>OCR model reads the characters</small></li>
+          <li data-s="db"><b>Server check</b><small>Registered? E-wallet charged?</small></li>
+          <li data-s="gate"><b>Gate</b><small>Servo raises or holds the barrier</small></li>
+        </ol>
+      </div>
+      <p class="fine">The simulator reproduces the logic described in the report. It does not run the real OCR model, and the vehicles, balances and fee are made-up demo data.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VIDEO -->
+<section class="section tint" id="video">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>See the prototype working</h2>
+      <p>The recorded demo shows the hardware rig detecting a vehicle, reading the plate and operating the gate.</p>
+    </div>
+    <div class="video-frame">
+      <iframe src="https://drive.google.com/file/d/106kWRco5A8o39AFzI0nEkXukjC7hBJOm/preview" title="Project demo video" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>
+    </div>
+    <p class="note">Video not loading? <a href="https://drive.google.com/file/d/106kWRco5A8o39AFzI0nEkXukjC7hBJOm/view?usp=drive_link" target="_blank" rel="noopener">Open it on Google Drive</a>.</p>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="section" id="problem">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Toll plazas are where traffic stops</h2>
+      <p>Cash payment and tag reading hold every vehicle at the booth. The report ties this to wasted time, fuel and revenue.</p>
+    </div>
+    <div class="facts">
+      <div><strong>2.9 billion hours</strong><span>lost to traffic each year in the US, plus about $160 billion in wasted fuel (Texas A&amp;M Urban Mobility Report)</span></div>
+      <div><strong>Up to 40%</strong><span>of fuel wasted in Dhaka because of poor traffic management, worth about Tk 41.5 million ($483,872) a day</span></div>
+      <div><strong>1.4×</strong><span>higher fuel consumption in traffic jams, a large share of it created at manual toll plazas</span></div>
+    </div>
+
+    <h3 class="sub">Where existing methods fall short</h3>
+    <div class="table-scroll">
+      <table class="cmp">
+        <thead><tr><th scope="col">Method</th><th scope="col">How it works</th><th scope="col">Limitations</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Manual booths</th><td>An operator takes cash from each driver.</td><td>Slow, labour-intensive, error-prone, and creates queues. Human handling also leaks revenue.</td></tr>
+          <tr><th scope="row">RFID tags</th><td>A tag on the vehicle is read by a sensor at the gate.</td><td>Tags can be duplicated, lost or damaged, and systems differ between regions.</td></tr>
+          <tr><th scope="row">Basic video tolling</th><td>Cameras photograph plates, read with simple image processing.</td><td>Accuracy drops with lighting, camera angle, and stains or damage on the plate.</td></tr>
+          <tr class="ours"><th scope="row">This project</th><td>Camera and sonar feed an ML-based OCR pipeline on a Raspberry Pi, matched against a server database.</td><td>Designed for real-time use, varied lighting and angles, and integration with smart-city systems.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SYSTEM -->
+<section class="section tint" id="system">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>How the system works</h2>
+      <p>The camera module photographs the vehicle, the Raspberry Pi sends the image to a server for OCR, and the server answers with a yes or no. The Pi then moves the barrier.</p>
+    </div>
+
+    <div class="split">
+      <figure class="fig"><img src="img/fig8.jpg" alt="Overview flowchart of the entire toll system" loading="lazy"><figcaption>Overview flowchart of the entire system.</figcaption></figure>
+      <div class="prose">
+        <h3>Gate decision</h3>
+        <p>The recognized number is checked against a database of registered vehicles.</p>
+        <ul class="ticks">
+          <li><b>Registered and paid:</b> the gate opens.</li>
+          <li><b>Unregistered, reported stolen or unpaid tolls:</b> the gate stays closed, with a possible alarm or follow-up action.</li>
+        </ul>
+        <p>An LCD shows messages to the driver and LEDs act as indicator lights.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Hardware</h3>
+    <div class="split rev">
+      <figure class="fig"><img src="img/fig10.jpg" alt="Hardware parts: LCD, PiCamera, Raspberry Pi, breadboard, sonar sensor and micro servo" loading="lazy"><figcaption>Left to right: LCD, PiCamera, Raspberry Pi, breadboard, sonar sensor, micro servo.</figcaption></figure>
+      <div class="prose">
+        <ol class="flow">
+          <li><b>Sonar sensor</b> measures the vehicle's distance and speed.</li>
+          <li><b>Capture</b> happens once the vehicle is 40 cm or closer and slower than 0.5 cm/s. The Pi photographs the plate and sends it to the server by HTTP POST.</li>
+          <li><b>Authorization</b> compares the OCR output with the database and checks whether the linked e-wallet was charged. The server returns a boolean response.</li>
+          <li><b>Actuation:</b> the Pi raises the barrier with the micro servo or keeps it closed, and updates the LCD and LEDs.</li>
+        </ol>
+      </div>
+    </div>
+    <figure class="fig wide"><img src="img/fig4.jpg" alt="Hardware operation flowchart" loading="lazy"><figcaption>Hardware operation flowchart.</figcaption></figure>
+
+    <h3 class="sub">Reading the plate</h3>
+    <div class="pipe-line" aria-label="OCR stages">
+      <div><b>Acquire</b><span>Image from the camera</span></div>
+      <div><b>Pre-process</b><span>Noise reduction, grayscale, resize</span></div>
+      <div><b>Binarize</b><span>Threshold to black and white</span></div>
+      <div><b>Detect plate</b><span>Find the plate region by shape and pattern</span></div>
+      <div><b>Segment</b><span>Separate characters by connectedness</span></div>
+      <div><b>Recognize</b><span>Trained OCR identifies each character</span></div>
+      <div><b>Assemble</b><span>Join into the plate number</span></div>
+    </div>
+    <div class="grid2">
+      <figure class="fig"><img src="img/fig6.jpg" alt="Flowchart of the OCR model" loading="lazy"><figcaption>Flowchart of the OCR model.</figcaption></figure>
+      <figure class="fig"><img src="img/fig11.jpg" alt="Steps to extract the number plate from an image" loading="lazy"><figcaption>Steps to extract the number plate.</figcaption></figure>
+    </div>
+
+    <h3 class="sub">Driver portal and admin dashboard</h3>
+    <div class="split">
+      <div class="prose">
+        <p>Drivers register on a website with personal details and vehicle information (plate number and type). After verification they can log in.</p>
+        <p>When a plate is recognized at the gate, the matching account is charged automatically and the driver gets an email or SMS confirmation.</p>
+        <p>Administrators get a dashboard for traffic flow, transaction volume and camera status, with alerts for unrecognized plates and failed transactions.</p>
+      </div>
+      <figure class="fig"><img src="img/fig1.jpg" alt="Flow diagram of the client website" loading="lazy"><figcaption>How clients interface with the system through the website.</figcaption></figure>
+    </div>
+    <figure class="fig wide narrow"><img src="img/fig9.jpg" alt="Frontend registration and login forms" loading="lazy"><figcaption>Frontend forms from the prototype.</figcaption></figure>
+
+    <h3 class="sub">Technology stack</h3>
+    <div class="chips">
+      <span>Raspberry Pi</span><span>PiCamera</span><span>Ultrasonic sensor</span><span>Micro servo</span><span>LCD + LEDs</span>
+      <span>Python device drivers</span><span>OpenCV OCR</span><span>Node.js backend</span><span>PHP</span><span>Python Flask</span>
+      <span>HTML / CSS / JavaScript</span><span>Tailwind CSS</span><span>Bootstrap</span><span>ngrok for public access</span>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="section" id="results">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>What the tests showed</h2>
+      <p>The OCR model was evaluated on accuracy by image type, error categories, comparison with other models, and execution time on the Raspberry Pi.</p>
+    </div>
+
+    <div class="res-grid">
+      <article class="res">
+        <h3>Accuracy by image type</h3>
+        <div class="bars" role="img" aria-label="Scanned documents about 92 percent, photographs about 85 percent, handwritten notes about 78 percent">
+          <div><span>Scanned documents</span><i style="--v:92"></i><em>~92%</em></div>
+          <div><span>Photographs</span><i style="--v:85"></i><em>~85%</em></div>
+          <div><span>Handwritten notes</span><i style="--v:78"></i><em>~78%</em></div>
+        </div>
+        <p>Typed, scanned text reads best. Photographs score above 80%, so the OCR stage is not the weak link for camera images.</p>
+      </article>
+
+      <article class="res">
+        <h3>Against other OCR models</h3>
+        <div class="bars" role="img" aria-label="Our model about 73 percent, CRNN about 90 percent, Keras-OCR about 97 percent">
+          <div class="mine"><span>This model</span><i style="--v:73"></i><em>~73%</em></div>
+          <div><span>CRNN</span><i style="--v:90"></i><em>~90%</em></div>
+          <div><span>Keras-OCR</span><i style="--v:97"></i><em>~97%</em></div>
+        </div>
+        <p>The report describes this model as landing in the 60–70% range, and its comparison chart shows it behind both CRNN and Keras-OCR. Better image quality and resolution improve it.</p>
+      </article>
+
+      <article class="res">
+        <h3>Error analysis</h3>
+        <div class="bars" role="img" aria-label="Handwriting variation about 200 errors, character misrecognition about 150, noise interference about 90">
+          <div><span>Handwriting variation</span><i style="--v:100"></i><em>~200</em></div>
+          <div><span>Character misrecognition</span><i style="--v:75"></i><em>~150</em></div>
+          <div><span>Noise interference</span><i style="--v:45"></i><em>~90</em></div>
+        </div>
+        <p>Counts of mismatched or poor outputs by cause.</p>
+      </article>
+
+      <article class="res">
+        <h3>Time to run OCR on the Pi</h3>
+        <p class="big">15.046 s <small>average</small></p>
+        <p>Measured across different plate string lengths. Strings longer than about 8–10 characters ran slightly faster, while shorter strings took longer.</p>
+        <p class="caveat">That is far slower than a moving vehicle allows, which is why the prototype triggers capture only when the vehicle is nearly stopped.</p>
+      </article>
+    </div>
+    <p class="note">Bar values are read from the report's charts and are approximate. The original charts are below.</p>
+
+    <details class="orig">
+      <summary>Show original charts from the report</summary>
+      <div class="grid4">
+        <figure class="fig"><img src="img/fig3.jpg" alt="Accuracy across image types chart" loading="lazy"></figure>
+        <figure class="fig"><img src="img/fig5.jpg" alt="Comparative performance chart" loading="lazy"></figure>
+        <figure class="fig"><img src="img/fig7.jpg" alt="Error analysis chart" loading="lazy"></figure>
+        <figure class="fig"><img src="img/fig2.jpg" alt="Average time taken to execute a string chart" loading="lazy"></figure>
+      </div>
+    </details>
+
+    <h3 class="sub">Conclusion</h3>
+    <p class="conclusion">The project delivers a toll collection prototype that uses a Raspberry Pi and IoT connectivity to link a camera at the gate to a central, real-time database. Python processes the captured images to extract plate numbers, which removes the manual steps of traditional tolling and adds real-time security checks for roads.</p>
+  </div>
+</section>
+
+<!-- FUTURE -->
+<section class="section tint" id="future">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Where it goes next</h2>
+      <p>Planned extensions from the report.</p>
+    </div>
+    <div class="future">
+      <div><h3>Better detection</h3><p>CNN and other deep learning models for vehicle detection and classification, tuned for high traffic volumes.</p></div>
+      <div><h3>More ways to pay</h3><p>Automated billing with e-wallets, cryptocurrencies and other digital payment platforms.</p></div>
+      <div><h3>Emissions monitoring</h3><p>Sensors at toll points, plus lower toll rates for electric and hybrid vehicles.</p></div>
+      <div><h3>Analytics and maintenance</h3><p>Traffic pattern prediction for dynamic pricing, and sensors that predict infrastructure maintenance.</p></div>
+      <div><h3>Mobile app</h3><p>View toll charges, check payment history and manage accounts from a phone.</p></div>
+      <div><h3>Solar power</h3><p>Solar panels with battery storage to run toll points sustainably.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="section" id="team">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Team</h2>
+      <p>Department of Electrical and Computer Engineering, North South University, Bashundhara, Dhaka 1229, Bangladesh.</p>
+    </div>
+    <ul class="team">
+      <li>Abrar Ur Alam</li>
+      <li>Mahbub Mokaddes Akash</li>
+      <li>Nafis Raihan</li>
+      <li>Md. Fazle Rabby Faysal</li>
+    </ul>
+
+    <details class="refs">
+      <summary>References</summary>
+      <ol>
+        <li>P. Manojkumar et al., “Virtual Tollgate using Machine Learning,” IOP Conf. Series: Materials Science and Engineering, vol. 1084, 2021. <a href="https://doi.org/10.1088/1757-899x/1084/1/012040" target="_blank" rel="noopener">doi</a></li>
+        <li>Md. N. H. Mir et al., “IoT based Digital Toll Collection System: A perspective,” IEEE, 2021. <a href="https://ieeexplore.ieee.org/document/9395996" target="_blank" rel="noopener">IEEE Xplore</a></li>
+        <li>E. Khan et al., “Automated toll tax collection system using cloud database,” IEEE, 2018. <a href="https://ieeexplore.ieee.org/document/8519929" target="_blank" rel="noopener">IEEE Xplore</a></li>
+        <li>P. B. Mane, G. Bade and V. Patil, “Image Processing based toll Automation Technique using ANPR,” 2019. <a href="https://www.researchgate.net/publication/334958135_Image_Processing_Based_Toll_Automation_Technique_Using_ANPR_1" target="_blank" rel="noopener">ResearchGate</a></li>
+        <li>E. R. K. Kaur and V. K. Banga, “Number plate recognition using OCR technique,” IJRET, 2013. <a href="https://ijret.org/volumes/2013v02/i09/IJRET20130209042.pdf" target="_blank" rel="noopener">PDF</a></li>
+        <li>C. Kaundilya, D. Chaula and Y. Chopra, “Automated Text Extraction from Images using OCR System,” IEEE, 2019. <a href="https://ieeexplore.ieee.org/document/8991281" target="_blank" rel="noopener">IEEE Xplore</a></li>
+        <li>R. Sivach et al., “Identification of vehicle through number plate using recognition algorithm,” 2023. <a href="https://www.researchgate.net/publication/370984471_IDENTIFICATION_OF_VEHICLE_THROUGH_NUMBER_PLATE_USING_RECOGNITION_ALGORITHM" target="_blank" rel="noopener">ResearchGate</a></li>
+      </ol>
+    </details>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Automated Toll Collection System Using ML-based VNR for Smart Cities</p>
+    <p><a href="#top">Back to top</a></p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
