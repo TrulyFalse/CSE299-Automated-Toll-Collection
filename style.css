@@ -209,3 +209,4 @@ details summary{cursor:pointer;font-weight:600}
   .nav nav a:nth-child(n+5){display:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.hero-links{margin-top:.75rem}
